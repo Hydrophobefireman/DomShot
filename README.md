@@ -18,7 +18,7 @@ DOMShot provides ES Module for TS and JS.
 #### Method 1
 
 ```javascript
-const shot = new DOMShot(document.documentElement); // takes screenshot of the entire pag
+const shot = new DOMShot(document.documentElement); // takes screenshot of the entire page
 ```
 
 #### Method 2
