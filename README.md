@@ -40,6 +40,21 @@ const dataURI = await shot.toDataUri(type, quality);
 const blob = await shot.toBlob(type, quality);
 ```
 
+As DomShot clones and your entire dom in memory (likely 100s of nodes), calling screenshot clears both your real dom
+and the cloned nodes from memory. 
+
+To take screenshot again:
+
+```javascript
+await shot.screenshot();
+const dataURI = await shot.toDataUri(type, quality);
+const blob = await shot.toBlob(type, quality);
+
+shot.from(document.documentElement);
+// do it all again
+
+```
+
 ## Options
 
 DomShot accepts the following options related to external image loading
