@@ -8,10 +8,18 @@ const ArrayFrom =
 
 const $unescape = window.unescape || ((x) => x);
 
-const callback =
+const _callback =
   window.requestAnimationFrame ||
   Promise.prototype.then.bind(Promise.resolve()) ||
   queueMicrotask; //?
+
+const callback = (fn) => _callback(() => _callback(fn));
+
+function createEventPromise(obj, event) {
+  return new Promise((resolve) =>
+    obj.addEventListener(event, resolve, { once: true })
+  );
+}
 
 class DOMToSVG {
   /** @param {HTMLElement} sourceNode */
@@ -19,6 +27,10 @@ class DOMToSVG {
     /** @type {HTMLImageElement} the svg encoded to base64 */
 
     this._img = null;
+
+    /** @type {Promise<Event>} */
+
+    this._imgReadyForCanvas = null;
 
     /** @type {number} offsetWidth of `sourceNode` */
 
@@ -98,6 +110,8 @@ class DOMToSVG {
    */
 
   from(node) {
+    this._width = this._height = 0;
+
     this._canvasState = DOMToSVG.DRAW_PENDING;
 
     this._sourceNode = node;
@@ -134,7 +148,8 @@ class DOMToSVG {
         child.tagName === "SCRIPT" ||
         child.tagName === "STYLE" ||
         child.style.display === "none" ||
-        child.tagName === "HEAD"
+        child.tagName === "HEAD" ||
+        child.tagName === "NOSCRIPT"
       ) {
         child.remove();
       }
@@ -173,6 +188,10 @@ class DOMToSVG {
 
     this._img = new Image(width, height);
 
+    this._imgReadyForCanvas = createEventPromise(this._img, "load");
+
+    this._img.crossOrigin = "anonymous"; // ?
+
     this._img.src = `data:image/svg+xml;charset=utf-8;base64,${btoa(
       $unescape(encodeURIComponent(this._svg))
     )}`;
@@ -204,19 +223,22 @@ class DOMToSVG {
 
     const img = this._img;
 
-    const width = this._width;
-
-    const height = this._height;
-
-    ctx.drawImage(img, 0, 0, width, height);
+    ctx.drawImage(img, 0, 0);
 
     this._canvasState = DOMToSVG.DRAWN;
+
+    this._imgReadyForCanvas = null;
+    this._clonedChildren = null;
+    this._sourceChildren = null;
+    this._clonedChildren = null;
+    this._sourceNode = null;
+    this._clonedNode = null;
   }
 
   /** @returns {Promise<DOMToSVG>} */
 
   screenshot() {
-    return new Promise((resolve) => {
+    return new Promise((resolve) =>
       callback(() => {
         if (!this._clonedNode)
           throw new Error("No source node has been specified");
@@ -230,23 +252,27 @@ class DOMToSVG {
         this._cleanMargin();
 
         this._generateSVG();
+        this._imgReadyForCanvas.then(() => {
+          this._imgReadyForCanvas = null;
+          this._generateCanvas();
 
-        this._generateCanvas();
+          this._fillCanvas();
 
-        return resolve(this);
-      });
-    });
+          resolve(this);
+        });
+      })
+    );
   }
 
   /** @returns {Promise<DOMToSVG>} */
 
   drawImage() {
-    return new Promise((resolve) => {
+    return new Promise((resolve) =>
       callback(() => {
         this._fillCanvas();
         return resolve(this);
-      });
-    });
+      })
+    );
   }
   /**
    * @returns {Promise<string>}
@@ -257,17 +283,22 @@ class DOMToSVG {
     return new Promise((resolve) =>
       this.drawImage().then(() =>
         callback(() =>
-          resolve(this._canvas.toDataURL(type || "image/png", quality || "100"))
+          resolve(this._canvas.toDataURL(type || "image/jpeg", quality || 1))
         )
       )
     );
   }
 
+  /**
+   * @returns {Promise<string>}
+   * @param {Blob} type
+   * @param {number} quality
+   */
   toBlob(type, quality) {
     return new Promise((resolve) =>
       this.drawImage().then(() =>
         callback(() =>
-          this._canvas.toBlob(resolve, type || "image/png", quality || 100)
+          this._canvas.toBlob(resolve, type || "image/jpeg", quality || 1)
         )
       )
     );
