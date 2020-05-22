@@ -40,7 +40,7 @@ const dataURI = await shot.toDataUri(type, quality);
 const blob = await shot.toBlob(type, quality);
 ```
 
-As DomShot clones and your entire dom in memory (likely 100s of nodes), calling screenshot clears both your real dom
+As DomShot clones and stores your entire dom in memory (likely 100s of nodes), calling screenshot clears both your real dom
 and the cloned nodes from memory. 
 
 To take screenshot again:
