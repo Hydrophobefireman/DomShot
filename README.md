@@ -11,7 +11,10 @@ DOMShot provides ES Module for TS and JS.
 ### 1. Import DOMShot
 
 (In your JS/TS File)
-`javascript import {DOMShot} from "DOMShot";`
+
+```javascript 
+import {DOMShot} from "DOMShot";
+```
 
 ### 2. Choose the node to take screenshot of
 
