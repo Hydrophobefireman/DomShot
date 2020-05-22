@@ -6,11 +6,11 @@ Uses promises all around, thus more performant for massive pages.
 
 ## API
 
-DOMShot provides ES Module for TS and JS.
+DOMShot provides ES Module for JS.
 
 ### 1. Import DOMShot
 
-(In your JS/TS File)
+(In your JS File)
 
 ```javascript
 import { DOMShot } from "DOMShot";
