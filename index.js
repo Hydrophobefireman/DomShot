@@ -2,28 +2,54 @@
 
 const ArrayFrom =
   Array.from ||
-  function (iterable) {
+  ((iterable) => {
     return [].slice.call(iterable);
-  };
+  });
 
-const $unescape = window.unescape || ((x) => x);
+const identity = (x) => x;
 
-const _callback =
-  window.requestAnimationFrame ||
-  Promise.prototype.then.bind(Promise.resolve()) ||
-  queueMicrotask; //?
+const $unescape = window.unescape || identity;
+
+/** @param {CanvasRenderingContext2D} ctx */
+function isTainted(ctx) {
+  try {
+    return !ctx.getImageData(0, 0, 1, 1);
+  } catch (err) {
+    return true;
+  }
+}
+
+const defer = Promise.prototype.then.bind(Promise.resolve());
+const _callback = window.requestAnimationFrame || defer || queueMicrotask; //?
 
 const callback = (fn) => _callback(() => _callback(fn));
 
-function createEventPromise(obj, event) {
-  return new Promise((resolve) =>
-    obj.addEventListener(event, resolve, { once: true })
-  );
+function createEventPromise(obj, event, timeout) {
+  return new Promise((resolve) => {
+    let timeout;
+    const $resolveClearTimeout = () => {
+      clearTimeout(timeout);
+      resolve();
+    };
+    obj.addEventListener(event, $resolveClearTimeout, { once: true });
+    obj.addEventListener("error", $resolveClearTimeout, {
+      once: true,
+    });
+    timeout = setTimeout($resolveClearTimeout, timeout || 5000);
+  });
 }
 
 class DOMToSVG {
-  /** @param {HTMLElement} sourceNode */
-  constructor(sourceNode) {
+  /** @param {HTMLElement} sourceNode
+   *  @param {{}} options
+   */
+  constructor(sourceNode, options) {
+    /**
+     * @type  {{drawImgTagsOnCanvas:boolean,timeout:number}}
+     */
+
+    this.options = options || { drawImgTagsOnCanvas: false, timeout: 5000 };
+
     /** @type {HTMLImageElement} the svg encoded to base64 */
 
     this._img = null;
@@ -32,11 +58,11 @@ class DOMToSVG {
 
     this._imgReadyForCanvas = null;
 
-    /** @type {number} offsetWidth of `sourceNode` */
+    /** @type {number} scrollWidth of `sourceNode` */
 
     this._width = null;
 
-    /** @type {number offsetHeight} of `sourceNode` */
+    /** @type {number} scrollHeight of `sourceNode` */
 
     this._height = null;
 
@@ -88,14 +114,40 @@ class DOMToSVG {
 
     const css = [];
 
-    for (let i = 0; i < computed.length; i++) {
-      const style = computed[i];
+    for (const style of computed) {
       const value = computed.getPropertyValue(style);
       if (!value) continue;
       css.push(`${style}:${value};`);
     }
 
     target.style.cssText = css.join("");
+  }
+
+  /** @param {HTMLImageElement} img */
+
+  static inlineImageIfPossible(img, timeout) {
+    if (["blob", "data"].indexOf(img.src.substr(0, 4)) === 0) return;
+
+    const prom = createEventPromise(img, "load", timeout).then(() => {
+      const c = document.createElement("canvas");
+
+      c.height = img.height;
+
+      c.width = img.width;
+
+      const ctx = c.getContext("2d");
+
+      ctx.drawImage(img, 0, 0);
+
+      if (!isTainted(ctx)) {
+        const imgOnLoad = createEventPromise(img, "load", timeout);
+        img.src = c.toDataURL();
+        return imgOnLoad;
+      }
+    });
+
+    img.crossOrigin = "anonymous";
+    return prom;
   }
 
   /** @param {HTMLElement} node */
@@ -139,21 +191,28 @@ class DOMToSVG {
     }
   }
 
-  _removeTags() {
+  _walkChildNodes() {
     const clonedChildren = this._clonedChildren;
-
-    for (let i = 0; i < clonedChildren.length; i++) {
-      const child = clonedChildren[i];
+    const imgProm = [];
+    for (const child of clonedChildren) {
+      const tag = child.tagName;
       if (
-        child.tagName === "SCRIPT" ||
-        child.tagName === "STYLE" ||
-        child.style.display === "none" ||
-        child.tagName === "HEAD" ||
-        child.tagName === "NOSCRIPT"
+        tag === "SCRIPT" ||
+        tag === "STYLE" ||
+        tag === "HEAD" ||
+        tag === "NOSCRIPT" ||
+        child.style.display === "none"
       ) {
         child.remove();
+        continue;
+      }
+      if (this.options.drawImgTagsOnCanvas && tag === "IMG") {
+        imgProm.push(
+          DOMToSVG.inlineImageIfPossible(child, this.options.timeout)
+        );
       }
     }
+    return imgProm;
   }
 
   _cleanMargin() {
@@ -171,9 +230,9 @@ class DOMToSVG {
 
     const clonedNode = this._clonedNode;
 
-    const width = sourceNode.offsetWidth;
+    const width = sourceNode.scrollWidth;
 
-    const height = sourceNode.offsetHeight;
+    const height = sourceNode.scrollHeight;
 
     clonedNode.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
     const xml = this._xmlSerializer.serializeToString(clonedNode);
@@ -188,7 +247,11 @@ class DOMToSVG {
 
     this._img = new Image(width, height);
 
-    this._imgReadyForCanvas = createEventPromise(this._img, "load");
+    this._imgReadyForCanvas = createEventPromise(
+      this._img,
+      "load",
+      this.options.timeout
+    );
 
     this._img.crossOrigin = "anonymous"; // ?
 
@@ -245,21 +308,25 @@ class DOMToSVG {
 
         this._cloneChildNodeStyle();
 
-        this._removeTags();
+        const promiseArr = this._walkChildNodes();
 
-        DOMToSVG.cloneStyle(this._sourceNode, this._clonedNode);
+        return Promise.all(promiseArr)
+          .then(() => {
+            DOMToSVG.cloneStyle(this._sourceNode, this._clonedNode);
 
-        this._cleanMargin();
+            this._cleanMargin();
 
-        this._generateSVG();
-        this._imgReadyForCanvas.then(() => {
-          this._imgReadyForCanvas = null;
-          this._generateCanvas();
+            this._generateSVG();
+            return this._imgReadyForCanvas.then(() => {
+              this._imgReadyForCanvas = null;
+              this._generateCanvas();
 
-          this._fillCanvas();
+              this._fillCanvas();
 
-          resolve(this);
-        });
+              resolve(this);
+            });
+          })
+          .catch((e) => console.log("e", e));
       })
     );
   }

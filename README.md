@@ -12,8 +12,8 @@ DOMShot provides ES Module for TS and JS.
 
 (In your JS/TS File)
 
-```javascript 
-import {DOMShot} from "DOMShot";
+```javascript
+import { DOMShot } from "DOMShot";
 ```
 
 ### 2. Choose the node to take screenshot of
@@ -21,7 +21,7 @@ import {DOMShot} from "DOMShot";
 #### Method 1
 
 ```javascript
-const shot = new DOMShot(document.documentElement); // takes screenshot of the entire page
+const shot = new DOMShot(document.documentElement,options?); // takes screenshot of the entire page
 ```
 
 #### Method 2
@@ -39,3 +39,21 @@ const dataURI = await shot.toDataUri(type, quality);
 // get as blob
 const blob = await shot.toBlob(type, quality);
 ```
+
+## Options
+
+DomShot accepts the following options related to external image loading
+
+```javascript
+interface Options {
+  drawImgTagsOnCanvas: boolean; // tries to inline <img/> tags by drawing them on a canvas
+  timeout: number; // time (in ms) to wait for the external image to load defaults to 5 seconds
+}
+```
+
+If you provide a large enough timeout value, DomShot will wait for all the images to load on the page.
+So, it's advisable to use a small timeout on very heavy pages
+
+## Todo
+
+1. Move to Worker if possible
