@@ -11,6 +11,7 @@ const identity = (x) => x;
 const $unescape = window.unescape || identity;
 
 /** @param {CanvasRenderingContext2D} ctx */
+
 function isTainted(ctx) {
   try {
     return !ctx.getImageData(0, 0, 1, 1);
@@ -280,6 +281,7 @@ class DOMToSVG {
   }
 
   _fillCanvas() {
+
     if (this._canvasState === DOMToSVG.DRAWN) return;
 
     const ctx = this._canvasContext;
@@ -290,12 +292,15 @@ class DOMToSVG {
 
     this._canvasState = DOMToSVG.DRAWN;
 
+
+
     this._imgReadyForCanvas = null;
     this._clonedChildren = null;
     this._sourceChildren = null;
     this._clonedChildren = null;
     this._sourceNode = null;
     this._clonedNode = null;
+
   }
 
   /** @returns {Promise<DOMToSVG>} */
@@ -326,7 +331,10 @@ class DOMToSVG {
               resolve(this);
             });
           })
-          .catch((e) => console.log("e", e));
+          .catch((e) => {
+            console.log(e);
+            resolve(this);
+          });
       })
     );
   }
