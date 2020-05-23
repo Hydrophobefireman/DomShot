@@ -1,0 +1,28 @@
+{
+  "name": "@hydrophobefireman/domshot",
+  "version": "0.0.1",
+  "description": "",
+  "main": "dist/index.m.js",
+  "scripts": {
+    "microbundle-start": "microbundle src/index.ts --compress false -o ./dist -f modern --target web --raw true  --tsconfig tsconfig.json",
+    "microbundle-start-opt": "microbundle src/index.ts -o ./dist -f modern,umd --target web --raw true  --tsconfig tsconfig.json",
+    "dev": "microbundle watch src/index.ts -o ./dist -f modern --raw  true --target web --tsconfig tsconfig.json",
+    "build": "python3 build.py --opt",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hydrophobefireman/domshot.git"
+  },
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Hydrophobefireman/domshot/issues"
+  },
+  "module": "dist/index.m.js",
+  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "homepage": "https://github.com/Hydrophobefireman/domshot#readme",
+  "devDependencies": {
+    "microbundle": "^0.12.0"
+  }
+}

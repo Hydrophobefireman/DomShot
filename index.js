@@ -1,45 +1,3 @@
-/** @type {ArrayConstructor['from']} */
-
-const ArrayFrom =
-  Array.from ||
-  ((iterable) => {
-    return [].slice.call(iterable);
-  });
-
-const identity = (x) => x;
-
-const $unescape = window.unescape || identity;
-
-/** @param {CanvasRenderingContext2D} ctx */
-
-function isTainted(ctx) {
-  try {
-    return !ctx.getImageData(0, 0, 1, 1);
-  } catch (err) {
-    return true;
-  }
-}
-
-const defer = Promise.prototype.then.bind(Promise.resolve());
-const _callback = window.requestAnimationFrame || defer || queueMicrotask; //?
-
-const callback = (fn) => _callback(() => _callback(fn));
-
-function createEventPromise(obj, event, timeout) {
-  return new Promise((resolve) => {
-    let timeout;
-    const $resolveClearTimeout = () => {
-      clearTimeout(timeout);
-      resolve();
-    };
-    obj.addEventListener(event, $resolveClearTimeout, { once: true });
-    obj.addEventListener("error", $resolveClearTimeout, {
-      once: true,
-    });
-    timeout = setTimeout($resolveClearTimeout, timeout || 5000);
-  });
-}
-
 class DOMToSVG {
   /** @param {HTMLElement} sourceNode
    *  @param {{}} options
@@ -154,8 +112,13 @@ class DOMToSVG {
   /** @param {HTMLElement} node */
 
   _clone(node) {
-    const cloned = node.cloneNode(true);
-    return cloned;
+    const cloned = this._sourceNode.cloneNode(true);
+
+    this._clonedNode = cloned;
+
+    this._sourceChildren = arrayFrom(this._sourceNode.querySelectorAll("*"));
+
+    this._clonedChildren = arrayFrom(this._clonedNode.querySelectorAll("*"));
   }
   /**
    * @param {HTMLElement} node sets the new source node
@@ -163,19 +126,23 @@ class DOMToSVG {
    */
 
   from(node) {
+    this._reset();
     this._width = this._height = 0;
 
     this._canvasState = DOMToSVG.DRAW_PENDING;
 
     this._sourceNode = node;
 
-    this._clonedNode = this._clone(this._sourceNode);
-
-    this._sourceChildren = ArrayFrom(this._sourceNode.querySelectorAll("*"));
-
-    this._clonedChildren = ArrayFrom(this._clonedNode.querySelectorAll("*"));
-
     return this;
+  }
+
+  _reset() {
+    this._imgReadyForCanvas = null;
+    this._clonedChildren = null;
+    this._sourceChildren = null;
+    this._clonedChildren = null;
+    this._sourceNode = null;
+    this._clonedNode = null;
   }
 
   _cloneChildNodeStyle() {
@@ -281,7 +248,6 @@ class DOMToSVG {
   }
 
   _fillCanvas() {
-
     if (this._canvasState === DOMToSVG.DRAWN) return;
 
     const ctx = this._canvasContext;
@@ -292,20 +258,13 @@ class DOMToSVG {
 
     this._canvasState = DOMToSVG.DRAWN;
 
-
-
-    this._imgReadyForCanvas = null;
-    this._clonedChildren = null;
-    this._sourceChildren = null;
-    this._clonedChildren = null;
-    this._sourceNode = null;
-    this._clonedNode = null;
-
+    this._reset();
   }
 
   /** @returns {Promise<DOMToSVG>} */
 
   screenshot() {
+    this._clone();
     return new Promise((resolve) =>
       callback(() => {
         if (!this._clonedNode)
@@ -342,12 +301,14 @@ class DOMToSVG {
   /** @returns {Promise<DOMToSVG>} */
 
   drawImage() {
-    return new Promise((resolve) =>
+    return new Promise((resolve, reject) => {
+      if (this._canvasState === DOMToSVG.DRAW_PENDING)
+        reject("Please call Screenshot first");
       callback(() => {
         this._fillCanvas();
         return resolve(this);
-      })
-    );
+      });
+    });
   }
   /**
    * @returns {Promise<string>}
@@ -384,3 +345,5 @@ DOMToSVG.DRAW_PENDING = 0;
 DOMToSVG.DRAWN = 1;
 
 export { DOMToSVG as DOMShot };
+
+
