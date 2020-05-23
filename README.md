@@ -6,11 +6,11 @@ Uses promises all around, thus more performant for massive pages.
 
 ## API
 
-DOMShot provides ES Module for TS and JS.
+DOMShot provides ES Module for JS.
 
 ### 1. Import DOMShot
 
-(In your JS/TS File)
+(In your JS File)
 
 ```javascript
 import { DOMShot } from "DOMShot";
@@ -38,6 +38,21 @@ await shot.screenshot();
 const dataURI = await shot.toDataUri(type, quality);
 // get as blob
 const blob = await shot.toBlob(type, quality);
+```
+
+As DomShot clones and stores your entire dom in memory (likely 100s of nodes), calling screenshot clears both your real dom
+and the cloned nodes from memory. 
+
+To take screenshot again:
+
+```javascript
+await shot.screenshot();
+const dataURI = await shot.toDataUri(type, quality);
+const blob = await shot.toBlob(type, quality);
+
+shot.from(document.documentElement);
+// do it all again
+
 ```
 
 ## Options
