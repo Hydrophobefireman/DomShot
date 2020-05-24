@@ -466,7 +466,7 @@
     </div>
 
     <script type="module">
-      import { DOMShot } from "../index.js";
+      import { DOMShot } from "./index.m.js";
       const div = document.getElementById("main-content");
       document.getElementById("screenshot").addEventListener("click", () => {
         const shot = new DOMShot(div, { drawImgTagsOnCanvas: true });
