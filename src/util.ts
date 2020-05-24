@@ -77,3 +77,23 @@ export function isTransparent(el: HTMLElement): boolean {
     el.style.backgroundColor
   );
 }
+const obj = {};
+const _Object = obj.constructor as ObjectConstructor;
+const hasOwnProp = obj.hasOwnProperty;
+
+export const assign = ("assign" in Object
+  ? _Object.assign
+  : function Object_assign(target: {}) {
+      for (let i = 1; i < arguments.length; i++) {
+        const source = arguments[i];
+        for (const key in source) {
+          if (hasOwnProp.call(source, key)) {
+            target[key] = source[key];
+          }
+        }
+      }
+      return target;
+    }) as ObjectConstructor["assign"];
+
+    
+export const inlinedURLSchemes = { data: 1, blob: 1 };
