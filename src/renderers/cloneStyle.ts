@@ -1,4 +1,8 @@
-export function cloneStyle(source: HTMLElement, target: HTMLElement): void {
+export function cloneStyle(
+  source: HTMLElement,
+  target: HTMLElement,
+  keepOverFlowingContent?: boolean
+): void {
   const computed = getComputedStyle(source);
 
   const css = [];
@@ -10,6 +14,9 @@ export function cloneStyle(source: HTMLElement, target: HTMLElement): void {
   }
 
   target.style.cssText = css.join("");
+  if (!keepOverFlowingContent) {
+    target.style.overflow = "hidden";
+  }
 }
 
 export function cloneChildNodeStyle(

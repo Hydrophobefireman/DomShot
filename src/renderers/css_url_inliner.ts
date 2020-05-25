@@ -29,7 +29,9 @@ export class InlineCssPropRenderer implements ElementTransform {
   }
 
   test(node: HTMLElement) {
-    return this._inlineProps.some((x) => node.style[x].indexOf("url(") > -1);
+    return this._inlineProps.some(
+      (x) => (((node || {}).style || {})[x] || "").indexOf("url(") > -1
+    );
   }
   transform(node: HTMLElement, sourceNode: HTMLElement) {
     const nodeStyle = node.style;

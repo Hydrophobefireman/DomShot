@@ -59,7 +59,7 @@ export class ImgRenderer implements ElementTransform {
     }
 
     const prom = createEventPromise(img, "load", timeout).then((obj: any) => {
-      if (obj.IS_ERROR) return;
+      if (obj.IS_ERROR) return img;
       const draw = this._draw(img);
 
       const ctx = draw.ctx;

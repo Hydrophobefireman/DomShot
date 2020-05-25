@@ -118,11 +118,6 @@ export class DOMShot {
     this._clonedChildren = util.arrayFrom(
       this._clonedNode.querySelectorAll("*")
     );
-
-    cloned.scroll({
-      left: this._sourceNode.scrollLeft,
-      top: this._sourceNode.scrollTop,
-    });
   }
 
   private _generateSVG() {
@@ -303,7 +298,7 @@ export class DOMShot {
       renderers.cloneChildNodeStyle(this._clonedChildren, this._sourceChildren);
       const childProcess = this._processChildNodes();
       childProcess.then(() => {
-        renderers.cloneStyle(this._sourceNode, this._clonedNode);
+        renderers.cloneStyle(this._sourceNode, this._clonedNode, true);
 
         if (util.isTransparent(this._clonedNode)) {
           this._clonedNode.style.background = util.getBackgroundColor(
