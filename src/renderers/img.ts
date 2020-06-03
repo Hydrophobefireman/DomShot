@@ -1,8 +1,8 @@
 import { createEventPromise, isTainted, inlinedURLSchemes } from "../util";
 
-type shotInstance = import("../index").DOMShot;
+type shotInstance = import("../core").DOMShot;
 
-type ElementTransform = import("../index").ElementTransform;
+type ElementTransform = import("../core").ElementTransform;
 
 export class ImgRenderer implements ElementTransform {
   public transform(

@@ -23,6 +23,9 @@ export function callback(fn: FrameRequestCallback): void {
   $req(() => $req(fn));
 }
 
+const ONCE = {
+  once: true,
+};
 export function createEventPromise(
   obj: EventTarget,
   event: string,
@@ -30,18 +33,14 @@ export function createEventPromise(
 ): Promise<Event> {
   return new Promise((resolve) => {
     let timer: NodeJS.Timeout;
+    const errorListener = () => $resolveClearTimeout({ IS_ERROR: true });
     const $resolveClearTimeout = (opt?: any) => {
       clearTimeout(timer);
       resolve(opt);
     };
-    obj.addEventListener(event, $resolveClearTimeout, { once: true });
-    obj.addEventListener(
-      "error",
-      () => $resolveClearTimeout({ IS_ERROR: true }),
-      {
-        once: true,
-      }
-    );
+
+    obj.addEventListener(event, $resolveClearTimeout, ONCE);
+    obj.addEventListener("error", errorListener, ONCE);
     timer = setTimeout($resolveClearTimeout, timeout || 5000);
   });
 }
@@ -69,13 +68,21 @@ export function getBackgroundColor(el: HTMLElement): string {
     getBackgroundColor(parent)
   );
 }
-
-export function isTransparent(el: HTMLElement): boolean {
-  return !(
-    el.style.background ||
-    el.style.backgroundImage ||
-    el.style.backgroundColor
+function _check(style: string): boolean {
+  return (
+    !style ||
+    style === "transparent" ||
+    style === "rgba(0,0,0,0)" ||
+    style === "none"
   );
+}
+export function isTransparent(el: HTMLElement): boolean {
+  let css = [
+    el.style.background,
+    el.style.backgroundImage,
+    el.style.backgroundColor,
+  ];
+  return css.some(_check);
 }
 const obj = {};
 const _Object = obj.constructor as ObjectConstructor;
@@ -95,5 +102,4 @@ export const assign = ("assign" in Object
       return target;
     }) as ObjectConstructor["assign"];
 
-    
 export const inlinedURLSchemes = { data: 1, blob: 1 };

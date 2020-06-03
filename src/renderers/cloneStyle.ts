@@ -4,12 +4,12 @@ export function cloneStyle(
   keepOverFlowingContent?: boolean
 ): void {
   const computed = getComputedStyle(source);
-
+  const def = getComputedStyle(target);
   const css = [];
 
   for (const style of computed) {
     const value = computed.getPropertyValue(style);
-    if (!value) continue;
+    if (!value || value === def.getPropertyValue(style)) continue;
     css.push(`${style}:${value};`);
   }
 

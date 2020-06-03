@@ -1,7 +1,7 @@
 import { ImgRenderer } from "./img";
-type shotInstance = import("../index").DOMShot;
+type shotInstance = import("../core").DOMShot;
 
-type ElementTransform = import("../index").ElementTransform;
+type ElementTransform = import("../core").ElementTransform;
 
 export class InlineCssPropRenderer implements ElementTransform {
   static requestRenderer(DOMShotInstance: shotInstance): void {

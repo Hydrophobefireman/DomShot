@@ -1,6 +1,6 @@
-type shotInstance = import("../index").DOMShot;
+type shotInstance = import("../core").DOMShot;
 
-type ElementTransform = import("../index").ElementTransform;
+type ElementTransform = import("../core").ElementTransform;
 
 export class FormElementRenderer implements ElementTransform {
   private _formElements = ["INPUT", "OPTION", "TEXTAREA"];

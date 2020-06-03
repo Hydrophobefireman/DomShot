@@ -4,9 +4,9 @@ interface VideoMetaData {
   width: number;
   height: number;
 }
-type shotInstance = import("../index").DOMShot;
+type shotInstance = import("../core").DOMShot;
 
-type ElementTransform = import("../index").ElementTransform;
+type ElementTransform = import("../core").ElementTransform;
 
 export class VideoRenderer {
   test(node: HTMLElement) {
