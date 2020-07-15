@@ -4,6 +4,10 @@ Take screenshots of the entire window or a particular DOM node.
 
 Uses promises all around, thus more performant for massive pages.
 
+## Installation 
+
+```npm i @hydrophobefireman/domshot```
+
 ## API
 
 DOMShot provides ES Module for JS.
