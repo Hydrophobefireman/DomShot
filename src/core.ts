@@ -1,7 +1,7 @@
 import * as util from "./util";
 import * as renderers from "./renderers/index";
 
-interface DomShotOptions {
+export interface DomShotOptions {
   // should DomShot inline your <img> tags , only use it if your images are CORS safe
   inlineImages?: boolean;
 
@@ -13,6 +13,12 @@ interface DomShotOptions {
 
   //which height/width to use, scroll vs offset
   dimensionGetter?: "scroll" | "offset";
+
+  //bypass cors with a proxy
+  bypassCors?: boolean;
+
+  //handle cors url
+  corsUrlHandler?(url: string): string;
 }
 
 export interface ElementTransform {
@@ -120,7 +126,7 @@ export class DOMShot {
     );
   }
 
-  private _generateSVG() {
+  private _generateSVG(sheet: ReturnType<typeof util.buildStylesheet>) {
     const sourceNode = this._sourceNode;
 
     const clonedNode = this._clonedNode;
@@ -146,6 +152,7 @@ export class DOMShot {
     }
 
     clonedNode.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
+    clonedNode.appendChild(sheet.sheet());
     const xml = this._xmlSerializer.serializeToString(clonedNode);
 
     this._svg = `<?xml version='1.0' encoding='UTF-8' ?><svg
@@ -202,11 +209,15 @@ export class DOMShot {
 
   private _drawImage(): Promise<DOMShot> {
     return new Promise((resolve, reject) => {
-      if (this._canvasState === DOMShot.DRAW_PENDING)
-        reject("Please call Screenshot first");
-      util.callback(() => {
-        this._fillCanvas();
-        return resolve(this);
+      const promise =
+        this._canvasState === DOMShot.DRAW_PENDING
+          ? this.screenshot()
+          : Promise.resolve(null as any);
+      promise.then(() => {
+        util.callback(() => {
+          this._fillCanvas();
+          return resolve(this);
+        });
       });
     });
   }
@@ -234,7 +245,7 @@ export class DOMShot {
   _sequentiallyRunTraversalHook(
     cloneChild: HTMLElement,
     sourceChild: HTMLElement
-  ): Promise<unknown> {
+  ): Promise<void> {
     return new Promise((resolve) => {
       const hooks = this._nodeTraversalHooks;
       const hooksLen = hooks.length;
@@ -265,11 +276,11 @@ export class DOMShot {
       this.from(sourceNode);
     }
     if (this.options.inlineImages) {
-      renderers.ImgRenderer.requestRenderer(this);
-      renderers.InlineCssPropRenderer.requestRenderer(this);
+      renderers.ImgRenderer.requestRenderer(this, this.options);
+      renderers.InlineCssPropRenderer.requestRenderer(this, this.options);
     }
     if (this.options.inlineVideos) {
-      renderers.VideoRenderer.requestRenderer(this);
+      renderers.VideoRenderer.requestRenderer(this, this.options);
     }
   }
 
@@ -294,11 +305,15 @@ export class DOMShot {
     return new Promise((resolve) => {
       if (!this._clonedNode)
         throw new Error("No source node has been specified");
-
-      renderers.cloneChildNodeStyle(this._clonedChildren, this._sourceChildren);
+      const sheet = util.buildStylesheet();
+      renderers.cloneChildNodeStyle(
+        this._sourceChildren,
+        this._clonedChildren,
+        sheet
+      );
       const childProcess = this._processChildNodes();
       childProcess.then(() => {
-        renderers.cloneStyle(this._sourceNode, this._clonedNode, true);
+        renderers.cloneStyle(this._sourceNode, this._clonedNode, true, sheet);
 
         if (util.isTransparent(this._clonedNode)) {
           this._clonedNode.style.background = util.getBackgroundColor(
@@ -307,7 +322,7 @@ export class DOMShot {
         }
         util.cleanMargin(this._clonedNode);
 
-        this._generateSVG();
+        this._generateSVG(sheet);
 
         return this._imgReadyForCanvas.then(() => {
           this._imgReadyForCanvas = null;
@@ -349,5 +364,9 @@ function defaultOptions(): DomShotOptions {
     inlineVideos: true,
     timeout: 5000,
     dimensionGetter: "scroll",
+    bypassCors: true,
+    corsUrlHandler: function _defaultHandler(u: string) {
+      return `https://rfster.vercel.app?fwd=${encodeURIComponent(u)}`;
+    },
   };
 }

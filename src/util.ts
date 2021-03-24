@@ -41,7 +41,7 @@ export function createEventPromise(
 
     obj.addEventListener(event, $resolveClearTimeout, ONCE);
     obj.addEventListener("error", errorListener, ONCE);
-    timer = setTimeout($resolveClearTimeout, timeout || 5000);
+    timer = setTimeout(errorListener, timeout || 5000);
   });
 }
 
@@ -60,10 +60,10 @@ export function getBackgroundColor(el: HTMLElement): string {
   if (!el) return;
   const parent = el.parentElement;
 
-  if (!parent || !parent.style) return;
+  if (!parent || !parent.style) return "#fff";
   return (
-    parent.style.background ||
     parent.style.backgroundColor ||
+    parent.style.background ||
     parent.style.backgroundImage ||
     getBackgroundColor(parent)
   );
@@ -102,4 +102,27 @@ export const assign = ("assign" in Object
       return target;
     }) as ObjectConstructor["assign"];
 
+export const create = "create" in Object ? _Object.create : identity;
 export const inlinedURLSchemes = { data: 1, blob: 1 };
+
+export function buildStylesheet() {
+  let ruleCount = 0;
+  let sheet = [];
+  const mapping: any = create(null) || {};
+  return {
+    sheet() {
+      const el = document.createElement("style");
+      el.innerHTML = sheet.join(" ");
+      return el;
+    },
+    addRule(prop: string, value: string): string {
+      const key = prop + value;
+      const prev = mapping[key];
+      if (prev) return prev;
+      const className = `_${ruleCount++}`;
+      mapping[key] = className;
+      sheet.push(`.${className}{${prop}:${value}}`);
+      return className;
+    },
+  };
+}

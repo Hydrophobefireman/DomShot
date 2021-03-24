@@ -2,10 +2,14 @@ import { ImgRenderer } from "./img";
 type shotInstance = import("../core").DOMShot;
 
 type ElementTransform = import("../core").ElementTransform;
-
+type DomShotOptions = import("../core").DomShotOptions;
 export class InlineCssPropRenderer implements ElementTransform {
-  static requestRenderer(DOMShotInstance: shotInstance): void {
-    const renderer = new InlineCssPropRenderer();
+  constructor(public options: DomShotOptions) {}
+  static requestRenderer(
+    DOMShotInstance: shotInstance,
+    options: import("../core").DomShotOptions
+  ): void {
+    const renderer = new InlineCssPropRenderer(options);
 
     DOMShotInstance.tapRenderProcess(renderer);
   }
@@ -41,9 +45,9 @@ export class InlineCssPropRenderer implements ElementTransform {
         if (inlineable) {
           const i = new Image();
           i.src = inlineable;
-          return new ImgRenderer()
+          return new ImgRenderer(this.options)
             .transform(i, sourceNode as HTMLImageElement)
-            .then(() => (nodeStyle[prop] = `url('${i.src}')`));
+            .then(() => (nodeStyle[prop] = `url('${i.currentSrc}')`));
         }
       })
     ).then(() => ({

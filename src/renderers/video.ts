@@ -5,10 +5,11 @@ interface VideoMetaData {
   height: number;
 }
 type shotInstance = import("../core").DOMShot;
-
+type DomShotOptions = import("../core").DomShotOptions;
 type ElementTransform = import("../core").ElementTransform;
 
 export class VideoRenderer {
+  constructor(public options: DomShotOptions) {}
   test(node: HTMLElement) {
     return node.tagName === "VIDEO";
   }
@@ -16,7 +17,7 @@ export class VideoRenderer {
     video: HTMLVideoElement,
     sourceVideo: HTMLVideoElement
   ): ReturnType<ElementTransform["transform"]> {
-    const imgRenderer = new ImgRenderer();
+    const imgRenderer = new ImgRenderer(this.options);
 
     return imgRenderer.transform(video, sourceVideo).then((resp) => {
       const i = new Image();
@@ -35,8 +36,11 @@ export class VideoRenderer {
     });
   }
 
-  static requestRenderer(DOMShotInstance: shotInstance): void {
-    const renderer = new VideoRenderer();
+  static requestRenderer(
+    DOMShotInstance: shotInstance,
+    options: DomShotOptions
+  ): void {
+    const renderer = new VideoRenderer(options);
     DOMShotInstance.tapRenderProcess(renderer);
   }
 }

@@ -3,8 +3,9 @@ import { createEventPromise, isTainted, inlinedURLSchemes } from "../util";
 type shotInstance = import("../core").DOMShot;
 
 type ElementTransform = import("../core").ElementTransform;
-
+type DomShotOptions = import("../core").DomShotOptions;
 export class ImgRenderer implements ElementTransform {
+  constructor(public options: DomShotOptions) {}
   public transform(
     img: HTMLImageElement | HTMLVideoElement,
     sourceImg: HTMLImageElement | HTMLVideoElement,
@@ -20,11 +21,15 @@ export class ImgRenderer implements ElementTransform {
   }
   public test(element: HTMLImageElement) {
     return (
-      element.tagName === "IMG" && !inlinedURLSchemes[element.src.substr(0, 4)]
+      element.tagName === "IMG" &&
+      !inlinedURLSchemes[element.currentSrc.substr(0, 4)]
     );
   }
-  static requestRenderer(DOMShotInstance: shotInstance): void {
-    const renderer = new ImgRenderer();
+  static requestRenderer(
+    DOMShotInstance: shotInstance,
+    options?: DomShotOptions
+  ): void {
+    const renderer = new ImgRenderer(options);
 
     DOMShotInstance.tapRenderProcess(renderer);
   }
@@ -32,7 +37,8 @@ export class ImgRenderer implements ElementTransform {
   private _inline(
     img: HTMLElement,
     sourceImg: HTMLImageElement,
-    timeout: number
+    timeout: number,
+    __iter?: number
   ): Promise<any> {
     if (
       !(img instanceof HTMLImageElement) &&
@@ -40,9 +46,10 @@ export class ImgRenderer implements ElementTransform {
     )
       return Promise.resolve(img);
     <HTMLImageElement | HTMLVideoElement>img;
-    const src = img.src;
-
-    if (src.substr(0, 4) === "blob") {
+    const src = img.currentSrc;
+    img.removeAttribute("srcset");
+    const substr = src.substr(0, 4);
+    if (substr === "blob") {
       const draw = this._draw(sourceImg);
 
       const tmp = new Image();
@@ -59,7 +66,13 @@ export class ImgRenderer implements ElementTransform {
     }
 
     const prom = createEventPromise(img, "load", timeout).then((obj: any) => {
-      if (obj.IS_ERROR) return img;
+      if (obj && obj.IS_ERROR) {
+        if (__iter) return img;
+        const handler = this.options && this.options.corsUrlHandler;
+        const url = handler(img.currentSrc);
+        img.src = url;
+        return this._inline(img, sourceImg, timeout, (__iter || 0) + 1);
+      }
       const draw = this._draw(img);
 
       const ctx = draw.ctx;
