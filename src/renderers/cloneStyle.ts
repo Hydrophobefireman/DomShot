@@ -20,7 +20,7 @@ export function cloneStyle(
     }
     classList.push(sheet.addRule(style, value));
   }
-  target.className = classList.join(" ");
+  target.setAttribute("class", classList.join(" "));
   if (!keepOverFlowingContent) {
     target.style.overflow = "hidden";
   }
